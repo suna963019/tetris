@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tetris</title>
+    <style>
+        body {
+            background-color: white;
+        }
+
+        #stage {
+            height: 800px;
+            width: 400px;
+            position: relative;
+            background-color: black;
+            border: 10px solid blue;
+        }
+
+        #anima {
+            position: absolute;
+        }
+
+        .block {
+            height: 38px;
+            width: 38px;
+            border: 1px solid;
+            background-color: black;
+        }
+
+        .new_block {
+            position: absolute;
+            border: 1px solid white;
+        }
+
+        .tr {
+            display: flex;
+        }
+
+        #fall_block {
+            padding: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="stage">
+        <div id="table">
+
+        </div>
+        <div id="fall_block">
+
+        </div>
+
+    </div>
+    <script>
+        'use strict';
+
+        //右回転はx=y,y=-x
+        document.addEventListener("keydown", keydown_event);
+        document.addEventListener("keyup", keyup_event);
+        let stageArray = [];
+        for (let i = 0; i < 20; i++) {
+            stageArray.push([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        }
+        const table = document.querySelector("#table");
+        let tr;
+        for (let i = 0, l = -1; i < 200; i++) {
+            if (i % 10 === 0) {
+                l++;
+                table.insertAdjacentHTML("beforeend", `<div id="tr_${l}" class="tr"></div>`);
+                tr = document.querySelector(`#tr_${l}`);
+            }
+            tr.insertAdjacentHTML("beforeend", `<div id="td_${l}_${i % 10}" class="block"></div>`);
+        }
+        stageArray.push([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+        const fall_block = document.querySelector("#fall_block")
+        const colorArray = [
+            {//
+                color: "red",
+                block: [[0, 0], [0, 1], [-1, 1], [1, 0]]
+            },
+            {//
+                color: "green",
+                block: [[0, 0], [0, 1], [-1, 1], [-1, 2]]
+            },
+            {//
+                color: "purple",
+                block: [[0, 0], [0, 1], [-1, 0], [1, 0],]
+            },
+            {//
+                color: "blue",
+                block: [[0, 0], [0, 1], [0, -1], [-1, 1]]
+            },
+            {//
+                color: "aqua",
+                block: [[0, 0], [0, -1], [0, 1], [0, 2]]
+            },
+            {//
+                color: "yellow",
+                block: [[0, 0], [0, 1], [1, 0], [1, 1]]
+            },
+            {//
+                color: "orange",
+                block: [[0, 0], [0, 1], [0, -1], [1, 1]]
+            }
+        ]
+        let newBlockArray = [
+            //["stageRow","stageCol","row","col","id"]
+        ];
+        let setFall;
+        let blockElement;
+        let keydownCheck = false;
+        let keyupCheck = true;
+        let playerMoveCheck = false;
+        let colorBlock;
+        let cantColor
+        start();
+
+
+        //関数群
+
+        //play用関数
+        function keyup_event() {
+            keyupCheck = true;
+        }
+        function keydown_event(e) {
+            e.preventDefault();
+
+            const downKey = e.keyCode;
+
+            let canCheck = true;
+            if (!playerMoveCheck) {
+                return;
+            }
+            keydownCheck = true;
+
+            playerMoveCheck = false;
+            let checkInKeydown = false;
+            let count = 0;
+            if (downKey === 37) {
+                //左
+
+                for (const i of newBlockArray) {
+                    if ((i[1] - 1 >= 0) && (stageArray[i[0] + 1][i[1] - 1] === 0)) {
+                        count++;
+                    }
+                }
+
+                if (count === 4) {
+                    for (const i of newBlockArray) {
+                        i[1] -= 1;
+                        i[3] -= 40;
+                    }
+                }
+            } else if (downKey === 38) {
+                if (!keyupCheck) {
+                    keydownCheck = false;
+                    playerMoveCheck = true;
+                    return;
+                }
+                keyupCheck = false;
+                //上
+                const defaultArray = newBlockArray[0];
+                let alterBlockArray = [];
+                for (const i of newBlockArray) {
+                    let stageRow = defaultArray[0] + i[1] - defaultArray[1];
+                    let stageCol = defaultArray[1] - i[0] + defaultArray[0];
+                    if (stageCol < 0 || stageCol > 9) {
+                        canCheck = false;
+                        break;
+                    }
+                    if (stageArray[stageRow][stageCol]) {
+                        canCheck = false;
+                        break;
+                    }
+                    alterBlockArray.push([stageRow, stageCol]);
+                }
+                if (canCheck) {
+                    for (let l = 0; l < 4; l++) {
+                        const i = newBlockArray[l];
+                        let element = document.getElementById(`${i[4]}`);
+                        const pot = i[0];
+                        i[0] = alterBlockArray[l][0];
+                        i[1] = alterBlockArray[l][1];
+                        i[2] = i[0] * 40 + defaultArray[2] - defaultArray[0] * 40;
+                        i[3] = i[1] * 40;
+                        element.style.top = `${i[2]}px`;
+                        element.style.left = `${i[3]}px`;
+                    }
+                }
+
+            } else if (downKey === 39) {
+                //右
+                for (const i of newBlockArray) {
+                    if ((i[1] + 1 <= 9) && (stageArray[i[0] + 1][i[1] + 1] === 0)) {
+                        count++;
+                    }
+                }
+
+                if (count === 4) {
+                    for (const i of newBlockArray) {
+                        i[1] += 1;
+                        i[3] += 40;
+                    }
+                }
+            } else if (downKey === 40) {
+                //下
+                count = 100;
+                for (let i of newBlockArray) {
+
+                    for (let l = 0; l < 21; l++) {
+                        if (l >= count) {
+                            break;
+                        }
+                        if (!(stageArray[l + i[0] + 1][i[1]] === 0)) {
+                            count = l;
+                            break;
+                        }
+                    }
+                }
+                for (const i of newBlockArray) {
+                    let element = document.getElementById(`${i[4]}`);
+                    i[0] += count;
+                    i[2] = i[0] * 40;
+                    element.style.top = `${i[2]}px`;
+                    console.log(i)
+                }
+                clearFall();
+                return;
+            }
+            keydownCheck = false;
+            playerMoveCheck = true;
+        }
+        //block用関数
+        function selectBlock() {
+            let blockNum = Math.floor(Math.random() * 7);
+            colorBlock = colorArray[blockNum];
+            if (colorBlock.color === cantColor) {
+                selectBlock();
+            } else {
+                cantColor = colorBlock.color;
+            }
+        }
+        function start() {
+            selectBlock();
+            newBlockArray = [];
+            let setArray = colorBlock.block
+            for (let i = 0; i < 4; i++) {
+                let stageRow = setArray[i][0] + 5;
+                let stageCol = setArray[i][1] + 4;
+                let row = stageRow * 40 - 160;
+                let col = stageCol * 40;
+                if (stageRow <= 0 || stageCol <= 0) {
+                    console.log(stageRow + "" + stageCol)
+                }
+
+                newBlockArray.push([stageRow, stageCol, row, col]);
+                newBlock(i);
+            }
+            fall();
+            setFall = setInterval(fall, 16);
+
+        }
+        function newBlock(i) {
+            newBlockArray[i].push("block" + i)
+            let array = newBlockArray[i];
+            const div = document.createElement("div");
+            div.id = `block${i}`;
+            div.classList.add("class", "block", colorBlock.color, "new_block");
+            div.style.left = `${array[2]}px`;
+            div.style.top = `${array[3]}px`;
+            div.style.backgroundColor = `${colorBlock.color}`;
+            fall_block.appendChild(div);
+
+            playerMoveCheck = true;
+        }
+        function fall() {
+            if (keydownCheck) {
+                return;
+            }
+            let check = false;
+            for (let i = 0; i < 4; i++) {
+                const array = newBlockArray[i];
+                let element = document.getElementById(`block${i}`);
+                element.style.top = `${array[2]}px`;
+                element.style.left = `${array[3]}px`;
+                if (!(array[0] < 0)) {
+                    stageArray[array[0]][array[1]] = 0;
+                    array[0] = Math.floor(array[2] / 40);
+                }
+                if (stageArray[array[0] + 1][array[1]] === 1) {
+                    check = true;
+                }
+                array[2] += 1;
+            }
+            if (check) {
+                clearFall();
+            }
+
+        }
+
+        function clearFall() {
+
+            clearInterval(setFall);
+            keydownCheck = false;
+            for (let array of newBlockArray) {
+                stageArray[array[0]][array[1]] = 1;
+                let td = document.querySelector(`#td_${array[0]}_${array[1]}`);
+                td.style.backgroundColor = `${colorBlock.color}`;
+                td.style.border = "1px solid white";
+            }
+            fall_block.textContent = "";
+
+            let count;
+            let needChangeArray = [];
+            let checkInClearFall = false;
+            for (let i = 0; i < 20; i++) {
+                if (!stageArray[i].includes(0)) {
+                    needChangeArray.push(i);
+                    checkInClearFall = true;
+                }
+            }
+
+            if (checkInClearFall) {
+                let i = needChangeArray[0];
+                while (true) {
+                    stageArray[i] = stageArray[i - 1].concat();
+                    for (let l = 0; l < 10; l++) {
+                        let td1 = document.querySelector(`#td_${i}_${l}`);
+                        let td2 = document.querySelector(`#td_${i - 1}_${l}`);
+                        td1.style.backgroundColor = td2.style.backgroundColor;
+                        td1.style.color = td2.style.color;
+                        td1.style.border = td2.style.border;
+                    }
+                    i--;
+                    if (i < 1) {
+                        needChangeArray.shift();
+                        if (needChangeArray.length === 0) {
+                            break;
+                        }
+                        i = needChangeArray[0];
+                    }
+                }
+            }
+            if (stageArray[0][4] === 1) {
+                //end();
+                console.log("end");
+            } else {
+                setTimeout(start, 100);
+            }
+
+        }
+
+    </script>
+</body>
+
+</html>
